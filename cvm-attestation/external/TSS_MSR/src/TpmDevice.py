@@ -50,38 +50,29 @@ else:
 
 class TpmTbsDevice(TpmDevice):
 
+    def __init__(self):
+        self.__tbsCtx = None
+
     # override
     def connect(self):
-        from ctypes import windll, Structure, byref, c_int, c_void_p
-        self.__tbs = windll.LoadLibrary('Tbs')
-        self.__tbsCtx = c_void_p()
-        self.__c_int = c_int
-        self.__byref = byref
-
-        class TbsContextParams(Structure):
-            _fields_ = [("version", c_int),
-                        ("params", c_int)]
-
-        tbsCtxParams = TbsContextParams(2, 1 << 2)
-        res = self.__tbs.Tbsi_Context_Create(byref(tbsCtxParams), byref(self.__tbsCtx))
-        if (res != 0):
-            raise(Exception('Tbsi_Context_Create() failed: error ' + hex(res)))
+        try:
+            import tbs_native
+        except ImportError as e:
+            raise Exception(
+                'The tbs_native module is not available. Build it from '
+                'external/TSS_MSR/native (see its README.md) before using the '
+                'Windows TPM device.') from e
+        self.__tbsCtx = tbs_native.TbsContext()
 
     # override
     def dispatchCommand(self, commandBuffer):
-        responseBuffer = bytes(4096)
-        respLen = self.__c_int(4096)
-        res = self.__tbs.Tbsip_Submit_Command(self.__tbsCtx, 0, 0, bytes(commandBuffer), len(commandBuffer), responseBuffer, self.__byref(respLen))
-        if (res != 0):
-            raise(Exception('Tbsip_Submit_Command() failed: error ' + hex(res)))
-        return responseBuffer[:respLen.value]
+        return self.__tbsCtx.submit_command(bytes(commandBuffer))
 
     # override
     def close(self):
-        if (self.__tbs):
-            res = self.__tbs.Tbsip_Context_Close(self.__tbsCtx)
-            if (res != 0):
-                raise(Exception('Tbsi_Context_Close() failed: error ' + hex(res)))
+        if (self.__tbsCtx):
+            self.__tbsCtx.close()
+            self.__tbsCtx = None
 
 # end of class TpmTbsDevice
 

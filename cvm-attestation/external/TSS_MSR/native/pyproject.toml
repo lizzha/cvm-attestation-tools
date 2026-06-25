@@ -1,0 +1,13 @@
+[build-system]
+requires = ["scikit-build-core >=0.10", "nanobind >=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "tbs-native"
+version = "0.1.0"
+description = "Nanobind wrapper around the Windows TPM Base Services (TBS) API."
+requires-python = ">=3.8"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
